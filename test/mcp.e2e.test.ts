@@ -526,6 +526,36 @@ describe("render_html", () => {
     await expectValidImages(result);
   });
 
+  it("hosts and captures again when the first load of the temporary URL misses the document", async () => {
+    // Seen on the live service: Cloud Run replaced an instance mid-call, the browser asked the new
+    // instance for the document, got 404, and the tool returned a screenshot of that 404 as a success.
+    fake.missHtmlLoads = 1;
+    const client = await connect();
+    const result = await call(client, "render_html", { html: "<h1>Hi</h1>" });
+    expect(result.isError).toBeFalsy();
+    expect(fake.captures()).toHaveLength(2);
+    expect(fake.fetchedHtml.map((f) => f.status)).toEqual([404, 200]);
+    expect(fake.captures()[1]!.params.url).not.toBe(fake.captures()[0]!.params.url);
+    expect(result.structuredContent).toMatchObject({ page_status: 200 });
+    expect(textOf(result)).toMatch(/This call used 2 screenshots of the quota/);
+    expect(hostedDocuments()).toBe(0);
+    await expectValidImages(result);
+  });
+
+  it("fails with an explanation, not a picture of a 404, when the document never loads", async () => {
+    fake.missHtmlLoads = 5;
+    const client = await connect();
+    const result = await call(client, "render_html", { html: "<h1>Hi</h1>" });
+    expect(result.isError).toBe(true);
+    expect(fake.captures()).toHaveLength(2);
+    const text = textOf(result);
+    expect(text).toMatch(/temporary URL answered HTTP 404 on 2 attempts/);
+    expect(text).toMatch(/2 screenshots of the quota were used/);
+    expect(text).toMatch(/capture_screenshot/);
+    expect(imagesOf(result)).toHaveLength(0);
+    expect(hostedDocuments()).toBe(0);
+  });
+
   it("passes viewport options with the same mapping as capture_screenshot", async () => {
     const client = await connect();
     await call(client, "render_html", { html: "<p>x</p>", device: "ipad", full_page: true, element: "p", scale: 2, return: "url_only" });

@@ -117,6 +117,13 @@ function raw(server: RunningHttpServer, payload: string, waitMs = 1500): Promise
 const statusLine = (response: string) => response.split("\r\n")[0] ?? "";
 
 describe("plain routes", () => {
+  it("GET /health answers like /healthz, because Cloud Run never forwards /healthz", async () => {
+    const res = await fetch(`${app.url}/health`);
+    expect(res.status).toBe(200);
+    expect(await res.json()).toEqual({ status: "ok", version: VERSION });
+    expect((await fetch(`${app.url}/health`, { method: "POST" })).status).toBe(404);
+  });
+
   it("GET /healthz", async () => {
     const res = await fetch(`${app.url}/healthz`);
     expect(res.status).toBe(200);

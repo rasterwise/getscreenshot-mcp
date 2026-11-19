@@ -442,6 +442,50 @@ async function sizeCapture(
   }
 }
 
+/** How many times render_html hosts and captures a document before giving up. */
+const HTML_HOST_ATTEMPTS = 2;
+
+/**
+ * Hosts the HTML, captures it and removes it again.
+ *
+ * The temporary URL only ever answers 404 when the document was not there at
+ * the moment the browser asked for it, which happens when the hosted service
+ * is replacing an instance. A screenshot of that 404 is useless to the caller,
+ * so the document is hosted and captured once more, and after that the call
+ * fails with an explanation.
+ */
+async function captureHostedHtml(
+  host: HtmlHost,
+  html: string,
+  params: Omit<CaptureInput, "url">,
+  env: CallEnv,
+): Promise<{ capture: CaptureResult; attempts: number }> {
+  for (let attempt = 1; ; attempt += 1) {
+    const hosted = await host.publish(html, env.signal);
+    let capture: CaptureResult;
+    try {
+      capture = await env.client.capture(
+        { url: hosted.url, ...params, hide_cookie_banners: false },
+        // The temporary URL is ours; in development it can be a local address.
+        { signal: env.signal, skipUrlCheck: true },
+      );
+    } finally {
+      // Whether the capture worked or not, the document has served its purpose.
+      await hosted.dispose();
+    }
+    if (capture.pageStatus !== 404) return { capture, attempts: attempt };
+    if (attempt >= HTML_HOST_ATTEMPTS) {
+      throw new GetScreenshotError(
+        "html_host_unavailable",
+        `render_html could not get the HTML to the capture service: the temporary URL answered HTTP 404 on ${attempt} attempts, so there is no useful image. ` +
+          `${attempt} screenshots of the quota were used. This is a problem on the hosting side, not in your HTML. ` +
+          "Wait a minute and try again, or publish the page at a public URL and use capture_screenshot.",
+        { countedAgainstQuota: true },
+      );
+    }
+  }
+}
+
 interface CaptureReportOptions {
   detail: Detail;
   maxSlices: number;
@@ -729,18 +773,7 @@ export function registerTools(server: McpServer, ctx: ServerContext): void {
           "render_html is not available on this server because it has nowhere to host the HTML. Publish the page at a public URL and use capture_screenshot instead. No quota was used.",
         );
       }
-      const hosted = await env.ctx.htmlHost.publish(html, env.signal);
-      let capture: CaptureResult;
-      try {
-        capture = await env.client.capture(
-          { url: hosted.url, ...viewport, hide_cookie_banners: false },
-          // The temporary URL is ours; in development it can be a local address.
-          { signal: env.signal, skipUrlCheck: true },
-        );
-      } finally {
-        // Whether the capture worked or not, the document has served its purpose.
-        await hosted.dispose();
-      }
+      const { capture, attempts } = await captureHostedHtml(env.ctx.htmlHost, html, viewport, env);
       return captureReport(
         capture,
         {
@@ -749,6 +782,10 @@ export function registerTools(server: McpServer, ctx: ServerContext): void {
           urlOnly: returnMode === "url_only",
           headline: "Rendered HTML captured",
           sourceLine: `Source: the HTML you supplied (${nf.format(Math.ceil(bytes / 1024))} KB), served from a temporary URL that has already been deleted (${statusText(capture.pageStatus)}).`,
+          extraNotes:
+            attempts > 1
+              ? [`The capture service could not load the temporary URL on the first attempt, so it was hosted and captured again. This call used ${attempts} screenshots of the quota.`]
+              : [],
         },
         env,
       );

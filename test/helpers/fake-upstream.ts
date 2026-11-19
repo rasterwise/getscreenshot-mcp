@@ -86,6 +86,8 @@ export interface FakeUpstream {
   fetchedHtml: FetchedHtml[];
   /** Artificial delay before every API answer. */
   delayMs: number;
+  /** How many of the next hosted-HTML loads miss the document, as when another instance answers. */
+  missHtmlLoads: number;
   /** Makes the gateway accept one more key until the next reset(). */
   allowKey(key: string): void;
   reset(): void;
@@ -183,6 +185,7 @@ export async function startFakeUpstream(): Promise<FakeUpstream> {
     downloads: () => state.requests.filter((r) => r.path.startsWith("/getscreenshot-storage/")),
     fetchedHtml: [],
     delayMs: 0,
+    missHtmlLoads: 0,
     allowKey(key: string) {
       validKeys.add(key);
     },
@@ -190,6 +193,7 @@ export async function startFakeUpstream(): Promise<FakeUpstream> {
       state.requests.length = 0;
       state.fetchedHtml.length = 0;
       state.delayMs = 0;
+      state.missHtmlLoads = 0;
       flakyCalls = 0;
       validKeys.clear();
       for (const key of DEFAULT_VALID_KEYS) validKeys.add(key);
@@ -269,9 +273,13 @@ export async function startFakeUpstream(): Promise<FakeUpstream> {
       return;
     }
 
-    // Our own hosted HTML: behave like the browser and load it.
+    // Our own hosted HTML: behave like the browser and load it. As with the real
+    // API, a page that answers 404 is still captured and reported as pageStatus 404.
+    let htmlStatus: number | undefined;
     if (target.pathname.startsWith("/h/")) {
-      const response = await fetch(target);
+      const miss = state.missHtmlLoads > 0;
+      if (miss) state.missHtmlLoads -= 1;
+      const response = await fetch(miss ? new URL("/h/" + "A".repeat(43), target) : target);
       const body = await response.text();
       state.fetchedHtml.push({
         url: target.href,
@@ -279,17 +287,14 @@ export async function startFakeUpstream(): Promise<FakeUpstream> {
         body,
         headers: Object.fromEntries(response.headers.entries()),
       });
-      if (!response.ok) {
-        json(res, 500, { status: "failed", message: PAGE_LOAD_MESSAGE });
-        return;
-      }
+      htmlStatus = response.status;
     }
 
     const now = new Date();
     const base = {
       status: "success",
       originUrl: params.url,
-      pageStatus: target.pathname.includes("status404") ? 404 : 200,
+      pageStatus: htmlStatus ?? (target.pathname.includes("status404") ? 404 : 200),
       captureDate: `${now.getUTCFullYear()}/${String(now.getUTCMonth() + 1).padStart(2, "0")}/${String(now.getUTCDate()).padStart(2, "0")}`,
       captureHour: now.toISOString().slice(11, 19),
       aiAnalysis: null,

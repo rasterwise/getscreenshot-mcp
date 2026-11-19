@@ -108,6 +108,6 @@ echo "Deploying ${SERVICE} to ${PROJECT} (${REGION}); preview mode: ${PREVIEW}" 
 
 echo >&2
 echo "Deployed. Check it:" >&2
-echo "  curl -s ${PUBLIC_BASE_URL}/healthz" >&2
+echo "  curl -s ${PUBLIC_BASE_URL}/health" >&2
 echo "If a hostname is not mapped to the service yet, map it first:" >&2
 echo "  gcloud beta run domain-mappings create --service ${SERVICE} --domain ${PUBLIC_BASE_URL#https://} --project ${PROJECT} --region ${REGION}" >&2

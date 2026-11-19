@@ -253,7 +253,7 @@ Routes:
 | Route | Purpose |
 |---|---|
 | `POST /mcp` | Stateless Streamable HTTP. A fresh server per request, no sessions. One JSON-RPC message per POST: a batch (JSON array) is rejected with error `-32600`. `GET` and `DELETE` answer 405. CORS is open for browser-based clients. |
-| `GET /healthz` | `{"status":"ok","version":"..."}` |
+| `GET /health` | `{"status":"ok","version":"..."}`. `/healthz` answers too, but Cloud Run intercepts that path, so use `/health` there |
 | `GET /` | 302 to <https://www.getscreenshotapi.com/agents/> |
 | `POST /v1/html` | Body is raw HTML (at most 2 MB), key in `Authorization: Bearer` or `x-api-key`. Returns `{"url", "expires_in_seconds"}`. Used by the local server's `render_html`. Answers 429 when the caller is over a limit and 503 when the store is full. |
 | `GET /h/:id` | Serves a stored document with `Content-Security-Policy: sandbox allow-scripts`, `X-Robots-Tag: noindex`, `Cache-Control: no-store`, `Referrer-Policy: no-referrer`. |

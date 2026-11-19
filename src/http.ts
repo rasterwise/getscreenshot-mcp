@@ -577,7 +577,8 @@ export async function startHttpServer(options: HttpServerOptions = {}): Promise<
     if (path === "/mcp" || path === "/mcp/") return handleMcp(req, res, entry);
     if (path === "/v1/html") return handleHtmlUpload(req, res, entry);
     if (isHtml) return handleHtmlDocument(req, res, path.slice(3));
-    if (path === "/healthz" && isRead) {
+    // Cloud Run answers /healthz itself and never forwards it, so /health is the one to use there.
+    if ((path === "/health" || path === "/healthz") && isRead) {
       sendJson(res, 200, { status: "ok", version: VERSION });
       return;
     }
