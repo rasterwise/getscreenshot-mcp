@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "getscreenshot": {
+      "command": "npx",
+      "args": ["-y", "getscreenshot-mcp@0.1.0"],
+      "env": {
+        "GETSCREENSHOT_API_KEY": "${GETSCREENSHOT_API_KEY:-}"
+      }
+    }
+  }
+}

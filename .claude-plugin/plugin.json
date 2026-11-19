@@ -1,0 +1,23 @@
+{
+  "name": "getscreenshot",
+  "displayName": "GetScreenshot",
+  "version": "0.1.0",
+  "description": "Screenshot public web pages and visually verify UI changes. Bundles the GetScreenshot MCP server (capture, render HTML, compare, PDF) and a shell-only skill. Needs a GetScreenshot API key in GETSCREENSHOT_API_KEY.",
+  "author": {
+    "name": "Rasterwise, LLC",
+    "email": "support@rasterwise.com",
+    "url": "https://www.getscreenshotapi.com"
+  },
+  "homepage": "https://www.getscreenshotapi.com/agents/",
+  "repository": "https://github.com/rasterwise/getscreenshot-mcp",
+  "license": "MIT",
+  "keywords": [
+    "screenshot",
+    "visual-verification",
+    "frontend",
+    "mcp",
+    "pdf"
+  ],
+  "documentationUrl": "https://docs.rasterwise.com/docs/agents/mcp-server/",
+  "privacyPolicyUrl": "https://www.rasterwise.com/privacy"
+}

@@ -1,0 +1,68 @@
+{
+  "name": "getscreenshot-mcp",
+  "version": "0.1.0",
+  "description": "MCP server and CLI for the GetScreenshot API: capture web pages, render HTML, diff screenshots, with images sized for vision models.",
+  "license": "MIT",
+  "author": "Rasterwise, LLC <support@rasterwise.com> (https://www.getscreenshotapi.com)",
+  "homepage": "https://www.getscreenshotapi.com/agents/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rasterwise/getscreenshot-mcp.git"
+  },
+  "bugs": {
+    "email": "support@rasterwise.com"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "screenshot",
+    "screenshot-api",
+    "getscreenshot",
+    "vision",
+    "ai-agents",
+    "cli"
+  ],
+  "mcpName": "com.getscreenshotapi/mcp",
+  "type": "module",
+  "bin": {
+    "getscreenshot-mcp": "dist/bin.js"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "skills",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "scripts": {
+    "build": "rm -rf dist && tsc -p tsconfig.build.json && chmod +x dist/bin.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "pretest": "npm run build",
+    "test": "vitest run",
+    "start": "node dist/bin.js",
+    "start:http": "node dist/bin.js --http",
+    "prepack": "npm run build"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "pixelmatch": "^8.0.0",
+    "sharp": "^0.35.5",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.1"
+  }
+}
